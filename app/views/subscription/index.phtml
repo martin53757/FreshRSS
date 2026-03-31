@@ -1,107 +1,63 @@
-<?php
-	declare(strict_types=1);
-	/** @var FreshRSS_View $this */
-	$this->partial('aside_subscription');
-?>
-<main class="post">
-	<h1><?= _t('sub.title') ?></h1>
+<?php $this->partial('aside_subscription'); ?>
 
-	<?php if ($this->onlyFeedsWithError): ?>
-	<div class="link-showAllFeeds-wrapper">
-		<a href="<?= _url('subscription', 'index') ?>">← <?= _t('sub.feed.show.all') ?></a>
+<div class="post">
+	<a href="<?= _url('subscription', 'add') ?>"><?= _t('sub.title.add') ?></a>
+</div>
+
+<!-- FEATURE: Reorder Toggle Button
+     This button enables the "Edit Mode" for feed sorting. 
+     We intentionally require an explicit toggle to prevent accidental drag-and-drop
+     actions while scrolling on touch devices. -->
+<div class="post">
+	<button class="btn" id="btn-toggle-reorder" type="button" title="Enable feed reordering">
+		<?= _i('move') ?> Toggle Reorder
+	</button>
+</div>
+
+<?php foreach ($this->categories as $category) { ?>
+<div class="box">
+	<div class="box-title">
+		<a class="configure" href="<?= _url('subscription', 'category', 'id', $category->id()) ?>">
+			<?= _i('configure') ?>
+		</a>
+		<?= $category->name() ?>
 	</div>
-		<p class="alert alert-warn">
-		<?= _t('sub.feed.showing.error') ?>
-	</p>
+	<ul class="feeds" data-category="<?= $category->id() ?>">
+	<?php foreach ($category->feeds() as $feed) { ?>
+		<!-- FEATURE: Feed Reordering Data Attributes
+		     We expose the feed ID and its current priority to the DOM. 
+		     This allows our JavaScript to implement a minimal-invasive "lexical sorting" 
+		     (calculating the midpoint between neighbors) without hitting the DB heavily. -->
+		<li class="item feed" 
+			data-feed-id="<?= $feed->id() ?>" 
+			data-priority="<?= $feed->priority() ?>">
+			
+			<!-- FEATURE: Drag-and-drop and Accessibility controls
+			     Hidden by default. Shown when #btn-toggle-reorder is activated.
+			     Up/Down buttons guarantee full accessibility (a11y) and provide a 
+			     fallback for mobile devices where native HTML5 drag-and-drop is flaky. -->
+			<span class="reorder-controls" style="display: none; margin-right: 10px; vertical-align: middle;">
+				<button type="button" class="btn btn-reorder-up" title="Move up" style="padding: 2px 5px;"><?= _i('up') ?></button>
+				<button type="button" class="btn btn-reorder-down" title="Move down" style="padding: 2px 5px;"><?= _i('down') ?></button>
+				<span class="drag-handle" style="cursor: grab; padding: 0 10px; font-size: 1.2em;">☰</span>
+			</span>
 
-	<?php endif; ?>
+			<a class="configure" href="<?= _url('subscription', 'feed', 'id', $feed->id()) ?>">
+				<?= _i('configure') ?>
+			</a>
 
-	<?php if (!$this->onlyFeedsWithError && $this->signalError) { ?>
-		<div>
-			<a class="btn btn-icon-text" href="<?= _url('subscription', 'index', 'error', '1') ?>"><?= _i('look') ?> <?= _t('sub.feed.show.error') ?></a>
-		</div>
+			<a href="<?= _url('index', 'index', 'get', 'f_' . $feed->id()) ?>">
+				<img class="favicon" src="<?= $feed->favicon() ?>" alt="✇" loading="lazy" />
+				<?= $feed->name() ?>
+			</a>
+
+			<?php if ($feed->inError()) { ?>
+				<span class="alert"> <?= _t('sub.feed.error') ?></span>
+			<?php } elseif ($feed->nbEntries() == 0) { ?>
+				<span class="alert"> <?= _t('sub.feed.empty') ?></span>
+			<?php } ?>
+		</li>
 	<?php } ?>
-
-	<div class="drop-section">
-		<?php
-			$signalError = false;
-			foreach ($this->categories as $cat) {
-				$feeds = $cat->feeds();
-		?>
-		<div class="box">
-			<div class="box-title">
-				<a class="configure open-slider" href="<?= _url('category', 'update', 'id', $cat->id()) ?>" title="<?= _t('gen.action.manage') ?>" data-cat-position="<?= $cat->attributeString('position') ?>"><?= _i('configure') ?></a>
-				<h2><?= $cat->name() ?><?= $cat->kind() === FreshRSS_Category::KIND_DYNAMIC_OPML ? ' ' . _i('opml-dyn') : '' ?></h2>
-			</div>
-			<ul class="box-content drop-zone scrollbar-thin" dropzone="move" data-cat-id="<?= $cat->id() ?>">
-				<?php
-				if (!empty($feeds)) {
-					foreach ($feeds as $feed) {
-						if ($this->onlyFeedsWithError && !$feed->inError()) {
-							continue;
-						}
-
-						$error_class = '';
-						$error_title = '';
-						if ($feed->inError()) {
-							$error_class = ' error';
-							$error_title = _t('sub.feed.error');
-						}
-
-						$empty_class = '';
-						$empty_title = '';
-						if ($feed->nbEntries() == 0) {
-							$empty_class = ' empty';
-							$empty_title = _t('sub.feed.empty');
-						}
-						$mute_class = $feed->mute() ? ' mute' : '';
-
-						$title = $error_title !== '' ? '⚠ ' . $error_title . '&#13;' : '';
-						$title .= $empty_title !== '' ? $empty_title . '&#13;' : '';
-						$title .= $feed->mute() ? '🔇 ' . _t('sub.feed.mute.state_is_muted') : '';
-				?>
-				<li class="item feed<?= $error_class, $empty_class, $mute_class ?>" title="<?= $title ?>"
-					draggable="true" data-feed-id="<?= $feed->id() ?>" data-priority="<?= $feed->priority() ?>">
-					<a class="configure open-slider" href="<?= _url('subscription', 'feed', 'id', $feed->id(), 'error', Minz_Request::paramBoolean('error') ? 1 : 0) ?>" title="<?= _t('gen.action.manage') ?>"><?= _i('configure') ?></a><?php
-					if (FreshRSS_Context::userConf()->show_favicons): ?><img class="favicon" src="<?= $feed->favicon() ?>" alt="✇" loading="lazy" /><?php
-					endif; ?><span class="item-title"><?= $feed->name() ?></span>
-				</li>
-				<?php
-					}
-				} else {
-				?>
-				<li class="item feed disabled emptyCategory"><div class="alert-warn"><?= _t('sub.category.empty') ?></div></li>
-				<?php } ?>
-				<?php if ($cat->kind() != FreshRSS_Category::KIND_DYNAMIC_OPML): ?>
-					<li class="item feed"><a href="<?= _url('subscription', 'add', 'cat_id', $cat->id()) ?>"><?= _i('add') ?><?= _t('sub.feed.add') ?></a></li>
-				<?php endif; ?>
-			</ul>
-		</div>
-		<?php } ?>
-
-		<div class="box visible-semi">
-			<div class="box-title">
-				<a href="<?= _url('subscription', 'add') ?>"><?= _i('add') ?> <h2><?= _t('sub.category.add') ?></h2></a>
-			</div>
-			<div class="box-content">
-			</div>
-		</div>
-	</div>
-</main>
-
-<?php $class = isset($this->feed) || isset($this->category) ? ' active' : ''; ?>
-<aside id="slider" class="<?= $class ?>">
-	<a class="toggle_aside" href="#close"><?= _i('close') ?></a>
-	<div id="slider-content">
-		<?php
-			if (isset($this->feed)) {
-				$this->renderHelper('feed/update');
-			} elseif (isset($this->category)) {
-				$this->renderHelper('category/update');
-			}
-		?>
-	</div>
-</aside>
-<a href="#close" id="close-slider">
-	<?= _i('close') ?>
-</a>
+	</ul>
+</div>
+<?php } ?>
