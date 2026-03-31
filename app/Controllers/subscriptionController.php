@@ -471,4 +471,61 @@ class FreshRSS_subscription_Controller extends FreshRSS_ActionController {
 		FreshRSS_View::appendScript(Minz_Url::display('/scripts/feed.js?' . @filemtime(PUBLIC_PATH . '/scripts/feed.js')));
 		FreshRSS_View::prependTitle(_t('sub.title.add') . ' . ');
 	}
+	
+	/**
+	 * FEATURE: Feed Reordering
+	 * Handles AJAX requests for drag-and-drop manual feed sorting.
+	 * Utilizes a lexical sorting approach to minimize database operations.
+	 */
+	public function action_reorderFeed() {
+		// Disable layout rendering for this AJAX request
+		$this->view->_layout(false);
+		
+		if (!Minz_Request::isPost()) {
+			header('HTTP/1.1 403 Forbidden');
+			return;
+		}
+
+		$feedId = Minz_Request::param('feed_id', 0);
+		$newPriority = Minz_Request::param('new_priority', 0);
+		$needsReindex = Minz_Request::param('needs_reindex', 0);
+
+		$feedDAO = FreshRSS_Factory::createFeedDao();
+		$feed = $feedDAO->searchById($feedId);
+
+		if (!$feed) {
+			header('HTTP/1.1 404 Not Found');
+			return;
+		}
+
+		// 1. Normal mode: Minimal-invasive update of just the moved feed
+		$feed->_priority($newPriority);
+		$feedDAO->updateFeed($feed);
+
+		// 2. Collision handling: Re-space priorities by 10 if integer space ran out
+		if ($needsReindex) {
+			$categoryId = $feed->category();
+			$feeds = $feedDAO->listByCategory($categoryId);
+			
+			// Sort the array by the current priority to establish the new correct order
+			usort($feeds, function($a, $b) {
+				if ($a->priority() === $b->priority()) {
+					// Fallback if two items have the exact same priority (collision)
+					return $a->id() - $b->id();
+				}
+				return $a->priority() - $b->priority();
+			});
+
+			// Re-distribute the priority values in steps of 10
+			$prio = 10;
+			foreach ($feeds as $f) {
+				$f->_priority($prio);
+				$feedDAO->updateFeed($f);
+				$prio += 10;
+			}
+		}
+
+		// Return success response without content
+		header('HTTP/1.1 204 No Content');
+	}
 }
