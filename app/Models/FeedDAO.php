@@ -733,4 +733,26 @@ class FreshRSS_FeedDAO extends Minz_ModelPdo {
 			SQL;
 		return $this->fetchInt($sql) ?? -1;
 	}
+
+/**
+	 * FEATURE: Feed Reordering
+	 * Shifts priorities of existing feeds to make room for a new one (resolving integer space collisions).
+	 *
+	 * @param int $categoryId
+	 * @param int $minPriority
+	 * @return bool
+	 */
+	public function shiftPriorities(int $categoryId, int $minPriority): bool {
+		$sql = 'UPDATE `' . $this->prefix . 'feed` '
+		     . 'SET priority = priority + 10 '
+		     . 'WHERE category = :category AND priority >= :priority';
+		
+		$values = [
+			':category' => $categoryId,
+			':priority' => $minPriority,
+		];
+		
+		$stm = $this->pdo->prepare($sql);
+		return $stm && $stm->execute($values);
+	}
 }
