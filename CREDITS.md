@@ -177,6 +177,7 @@ People are sorted by name so please keep this order.
 * [Mark Monteiro](https://github.com/mark-monteiro): [contributions](https://github.com/FreshRSS/FreshRSS/pulls?q=is:pr+author:mark-monteiro), [Web](https://markmonteiro.info/)
 * [Martín González Gómez](https://github.com/martgnz): [contributions](https://github.com/FreshRSS/FreshRSS/pulls?q=is:pr+author:martgnz), [Web](https://martingonzalez.net/)
 * [Martin Hartmann](https://github.com/martinhartmann): [contributions](https://github.com/FreshRSS/FreshRSS/pulls?q=is:pr+author:martinhartmann)
+* [Martin Müller](https://github.com/martin53757): [contributions](https://github.com/FreshRSS/FreshRSS/pulls?q=is:pr+author:martin53757)
 * [Martin](https://github.com/C0rn3j): [contributions](https://github.com/FreshRSS/FreshRSS/pulls?q=is:pr+author:C0rn3j), [Web](https://rys.pw/)
 * [math-GH](https://github.com/math-GH): [contributions](https://github.com/FreshRSS/FreshRSS/pulls?q=is:pr+author:math-GH)
 * [Matt Sephton](https://github.com/gingerbeardman): [contributions](https://github.com/FreshRSS/FreshRSS/pulls?q=is:pr+author:gingerbeardman)
